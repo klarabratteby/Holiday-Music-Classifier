@@ -1,2 +1,2 @@
 # Holiday-Music-Classifier
-Project from the course ”Machine Learning for Social Media”, Linköping University 2023.
+Spotify project from the course ”Machine Learning for Social Media”, Linköping University 2023.
