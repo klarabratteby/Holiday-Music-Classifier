@@ -167,7 +167,7 @@ rf_predictions = rf_classifier.predict(X_test)
 # SVM Classifier
 svm_classifier = SVC(kernel='linear', C=1)
 svm_cv_scores = cross_val_score(
-    svm_classifier, X, y, cv=5)  # 10-fold cross-validation
+    svm_classifier, X, y, cv=10)  # 10-fold cross-validation
 svm_classifier.fit(X_train, y_train)
 svm_predictions = svm_classifier.predict(X_test)
 
