@@ -13,7 +13,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import seaborn as sns
 
-# Load environment variables from .env file
+# Load client-id and secret
 load_dotenv()
 
 # Spotify client-id
@@ -42,8 +42,6 @@ def playlist_tracks(playlist_id):
 
 def playlist_URIs(playlist_id):
     return [t["uri"] for t in playlist_tracks(playlist_id)]
-
-# Feature function
 
 
 def audio_features(track_URIs):
