@@ -1,3 +1,4 @@
+from sklearn.model_selection import GridSearchCV
 import spotipy
 import os
 from dotenv import load_dotenv
@@ -12,6 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import seaborn as sns
+from sklearn.model_selection import KFold
 
 # Load client-id and secret
 load_dotenv()
@@ -26,45 +28,67 @@ client_credentials_manager = SpotifyClientCredentials(
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 # Christmas playlist
-playlist1 = "f0e8c1dacc8545ab"
+playlist1 = "214JJqfA7v4pWRt3eNu52P"
+
+# Ordinary songs
+playlist2 = "1oaIBFJnPFhxbka5CFQVF7"
 
 
-def playlist_tracks(playlist_id):
-    tracks_list = []
-    results = sp.playlist_tracks(playlist_id, fields="items(track)")
-    tracks = results['items']
-    tracks_list += [item['track'] for item in tracks]
-    return tracks_list
+def playlist_tracks(playlist_id, limit=100):
+    track_uris = []
+    offset = 0
 
+    while len(track_uris) < limit:
+        results = sp.playlist_tracks(
+            playlist_id, fields="items(track(uri))", limit=100, offset=offset
+        )
 
-def playlist_URIs(playlist_id):
-    return [t["uri"] for t in playlist_tracks(playlist_id)]
+        if not results['items']:
+            break
+
+        track_uris += [item['track']['uri'] for item in results['items']]
+        offset += len(results['items'])
+
+    return track_uris[:limit]
 
 
 def audio_features(track_URIs):
     features = []
-    r = splitlist(track_URIs, 5)
-    for pack in range(len(r)):
-        features = features + (sp.audio_features(r[pack]))
+    for chunk in [track_URIs[i:i+50] for i in range(0, len(track_URIs), 50)]:
+        try:
+            features += sp.audio_features(chunk)
+        except spotipy.exceptions.SpotifyException as e:
+            print(f"Error fetching audio features: {e}")
+
+    if not features:
+        print("No features extracted. Check for errors in the tracks.")
+        return pd.DataFrame()
+
     df = pd.DataFrame.from_dict(features)
-    df["uri"] = track_URIs
+    df["uri"] = track_URIs[:len(df)]  # Match the length of the DataFrame
     return df
 
 
-def splitlist(track_URIs, step):
-    return [track_URIs[i::step] for i in range(step)]
-
-
-list1 = playlist_URIs(playlist1)
-list2 = playlist_URIs(playlist2)
+# Specify the desired count for each playlist
+desired_count = 450
 
 # Dataframes
-audio_features1 = audio_features(list1)
-audio_features2 = audio_features(list2)
+audio_features1 = pd.DataFrame()
+audio_features2 = pd.DataFrame()
 
-audio_features1.to_csv('christmas.csv')
-audio_features2.to_csv('midsummer.csv')
+# Retrieve features for the first playlist
+list1 = playlist_tracks(playlist1, limit=desired_count)
+if list1:
+    audio_features1 = audio_features(list1)
 
+# Retrieve features for the second playlist
+list2 = playlist_tracks(playlist2, limit=desired_count)
+if list2:
+    audio_features2 = audio_features(list2)
+
+# Save to CSV
+audio_features1.to_csv('christmas_classifier.csv', index=False)
+audio_features2.to_csv('ordinary_songs.csv', index=False)
 # Label the data
 # set label with true or false
 audio_features1["target"] = 0
@@ -114,9 +138,9 @@ plt.title('Most Important Features (Third Principal Component)')
 # Rotate x-axis labels for better visibility
 plt.xticks(rotation=45, ha='right')
 plt.show()
-'''
+
 # Chosen features based on PCA
-feature_selection = ['speechiness', 'mode', 'liveness', 'tempo']
+feature_selection = ['tempo', 'danceability', 'liveness', 'instrumentalness']
 
 # Subset data for each playlist
 christmas_songs = training_data[training_data['target'] == 0]
@@ -143,28 +167,49 @@ for i, feature in enumerate(feature_selection):
 plt.tight_layout()
 plt.show()
 
+'''
+X = training_data[feature_selection]
+y = training_data['target']
+cv = KFold(n_splits=10, random_state=0, shuffle=True)
+# Random Forest hyperparameter tuning
+param_grid_rf = {'n_estimators': [50, 100, 200],
+                 'max_depth': [None, 10, 20],
+                 'min_samples_split': [2, 5, 10]}
+grid_search_rf = GridSearchCV(RandomForestClassifier(
+    random_state=0), param_grid_rf, cv=cv)
+grid_search_rf.fit(X, y)
+print("Best Random Forest Parameters:", grid_search_rf.best_params_)
+
+# SVM hyperparameter tuning
+param_grid_svm = {'C': [0.1, 1, 10],
+                  'kernel': ['linear', 'rbf']}
+grid_search_svm = GridSearchCV(SVC(random_state=0), param_grid_svm, cv=cv)
+grid_search_svm.fit(X, y)
+print("Best SVM Parameters:", grid_search_svm.best_params_)
+'''
 
 # Comparing Random Forest-and SVM classifier
 
 # Split the data into features (X) and target variable (y)
 X = training_data[feature_selection]
 y = training_data['target']
-
+cv = KFold(n_splits=10, random_state=0, shuffle=True)
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    X, y, test_size=0.5, random_state=12)
 
 # Random Forest Classifier
-rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier = RandomForestClassifier(
+    n_estimators=50, random_state=0, max_depth=10, min_samples_split=5)
 rf_cv_scores = cross_val_score(
-    rf_classifier, X, y, cv=10)  # 10-fold cross-validation
+    rf_classifier, X, y, cv=cv)
 rf_classifier.fit(X_train, y_train)
 rf_predictions = rf_classifier.predict(X_test)
 
 # SVM Classifier
 svm_classifier = SVC(kernel='linear', C=1)
 svm_cv_scores = cross_val_score(
-    svm_classifier, X, y, cv=10)  # 10-fold cross-validation
+    svm_classifier, X, y, cv=cv)
 svm_classifier.fit(X_train, y_train)
 svm_predictions = svm_classifier.predict(X_test)
 
@@ -233,4 +278,3 @@ plt.ylabel('Accuracy')
 plt.title('Classifier Comparison')
 plt.ylim(0, 1)  # Set the y-axis range to 0-1 for accuracy percentage
 plt.show()
-'''
