@@ -1,3 +1,4 @@
+'''
 import spotipy
 import os
 from dotenv import load_dotenv
@@ -173,7 +174,7 @@ svm_predictions = svm_classifier.predict(X_test)
 
 # Plotting the CV scores
 plt.bar(['Random Forest', 'SVM'], [
-        np.mean(rf_cv_scores), np.mean(svm_cv_scores)])
+        np.mean(rf_cv_scores), np.mean(svm_cv_scores)], color=['blue', 'green'])
 plt.xlabel('Classifiers')
 plt.ylabel('Mean CV Score')
 plt.title('Cross-Validated Score Comparison')
@@ -236,3 +237,4 @@ plt.ylabel('Accuracy')
 plt.title('Classifier Comparison')
 plt.ylim(0, 1)  # Set the y-axis range to 0-1 for accuracy percentage
 plt.show()
+'''
