@@ -245,8 +245,6 @@ print("Accuracy:", accuracy_score(y_test, svm_predictions))
 print("Classification Report:\n", classification_report(y_test, svm_predictions))
 print("Confusion Matrix:\n", confusion_matrix(y_test, svm_predictions))
 
-# Function to plot confusion matrix heatmap
-
 
 def plot_confusion_matrix(y_true, y_pred, title):
     cm = confusion_matrix(y_true, y_pred)

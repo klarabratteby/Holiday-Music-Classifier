@@ -1,4 +1,3 @@
-
 import spotipy
 import os
 from dotenv import load_dotenv
@@ -35,7 +34,7 @@ playlist1 = "73IgCB7ewVg3y8S3B8Pvnn"
 playlist2 = "5fb1KO0EhFdZWwQsvJSIdM"
 
 
-def playlist_tracks(playlist_id):
+def playlist_tracks(playlist_id):  # Get list of tracks from the playlists
     tracks_list = []
     results = sp.playlist_tracks(playlist_id, fields="items(track)")
     tracks = results['items']
@@ -43,11 +42,11 @@ def playlist_tracks(playlist_id):
     return tracks_list
 
 
-def playlist_URIs(playlist_id):
+def playlist_URIs(playlist_id):  # Get list of tracks from the URIs
     return [t["uri"] for t in playlist_tracks(playlist_id)]
 
 
-def audio_features(track_URIs):
+def audio_features(track_URIs):  # Get audio features
     features = []
     r = splitlist(track_URIs, 5)
     for pack in range(len(r)):
@@ -57,7 +56,7 @@ def audio_features(track_URIs):
     return df
 
 
-def splitlist(track_URIs, step):
+def splitlist(track_URIs, step):  # Split into sublists
     return [track_URIs[i::step] for i in range(step)]
 
 
@@ -122,17 +121,17 @@ plt.bar(feature_names, np.abs(
     best_loadings[sorted_indices]), color='blue')
 plt.xlabel('Features')
 plt.ylabel('Absolute Loadings')
-plt.title('Most Important Features ')
+plt.title('Most Important Features')
 # Rotate x-axis labels for better visibility
 plt.xticks(rotation=45, ha='right')
 plt.show()
-# Chosen features based on PCA
 
+# Chosen features based on PCA
 feature_selection = ['energy', 'loudness', 'acousticness', 'danceability']
 
 # Subset data for each playlist
-christmas_songs = training_data[training_data['target'] == 0]
-midsummer_songs = training_data[training_data['target'] == 1]
+christmas_songs = training_data[training_data['target'] == 1]
+midsummer_songs = training_data[training_data['target'] == 0]
 
 fig, axes = plt.subplots(2, 2, figsize=(12, 9))
 songs_datasets = [christmas_songs, midsummer_songs]
@@ -155,11 +154,12 @@ for i, feature in enumerate(feature_selection):
 plt.tight_layout()
 plt.show()
 
-# Grid search
+# Grid search for hyperparameter tuning
 X = training_data[feature_selection]
 y = training_data['target']
 cv = KFold(n_splits=10, random_state=0, shuffle=True)
-# Random Forest hyperparameter tuning
+
+# Random Forest
 param_grid_rf = {'n_estimators': [50, 100, 200],
                  'max_depth': [None, 10, 20],
                  'min_samples_split': [2, 5, 10]}
@@ -168,7 +168,7 @@ grid_search_rf = GridSearchCV(RandomForestClassifier(
 grid_search_rf.fit(X, y)
 print("Best Random Forest Parameters:", grid_search_rf.best_params_)
 
-# SVM hyperparameter tuning
+# SVM
 param_grid_svm = {'C': [0.1, 1, 10],
                   'kernel': ['linear', 'rbf']}
 grid_search_svm = GridSearchCV(SVC(random_state=0), param_grid_svm, cv=cv)
@@ -208,10 +208,10 @@ plt.bar(['Random Forest', 'SVM'], [
 plt.xlabel('Classifiers')
 plt.ylabel('Mean CV Score')
 plt.title('Cross-Validated Score Comparison')
-plt.ylim(0, 1)  # Set the y-axis range to 0-1 for accuracy percentage
+plt.ylim(0, 1)
 plt.show()
 
-# Print
+# Print result
 print("Random Forest Classifier:")
 print("Random Forest Cross-Validation Scores:", rf_cv_scores)
 print("Mean Random Forest CV Score:", np.mean(rf_cv_scores))
@@ -226,9 +226,8 @@ print("Accuracy:", accuracy_score(y_test, svm_predictions))
 print("Classification Report:\n", classification_report(y_test, svm_predictions))
 print("Confusion Matrix:\n", confusion_matrix(y_test, svm_predictions))
 
+
 # Function to plot confusion matrix heatmap
-
-
 def plot_confusion_matrix(y_true, y_pred, title):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
@@ -265,5 +264,5 @@ plt.bar(classifiers, accuracies, color=['blue', 'green'])
 plt.xlabel('Classifiers')
 plt.ylabel('Accuracy')
 plt.title('Classifier Comparison')
-plt.ylim(0, 1)  # Set the y-axis range to 0-1 for accuracy percentage
+plt.ylim(0, 1)  # accuracy percentage
 plt.show()
