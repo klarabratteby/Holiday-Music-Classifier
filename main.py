@@ -13,6 +13,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import seaborn as sns
+from sklearn.model_selection import KFold
+from sklearn.model_selection import GridSearchCV
 
 # Load client-id and secret
 load_dotenv()
@@ -71,8 +73,8 @@ audio_features2.to_csv('midsummer.csv')
 
 # Label the data
 # set label with true or false
-audio_features1["target"] = 0
-audio_features2["target"] = 1
+audio_features1["target"] = 1
+audio_features2["target"] = 0
 
 training_data = pd.concat(
     [audio_features1, audio_features2], ignore_index=True)
@@ -89,38 +91,44 @@ scaler = StandardScaler()
 features_pca_scaled = scaler.fit_transform(features_pca)
 
 # Apply PCA
-pca = PCA(n_components=3)
+pca = PCA(n_components=10)
 pca_result = pca.fit_transform(features_pca_scaled)
 
 # Accessing loadings
 loadings = pca.components_
 
-# Print loadings
-print("Third Principal Component Loadings:")
-for j, feature in enumerate(features_pca.columns):
-    print(f"{feature}: {loadings[2][j]}")
+# Identify the best principal component based on variance explained
+best_component_index = np.argmax(pca.explained_variance_ratio_)
 
-# Identify the most important features based on absolute loadings
-important_features = np.abs(loadings[2])  # Third principal component
+# Get the loadings and feature names for the best component
+best_loadings = loadings[best_component_index]
+best_feature_names = features_pca.columns
 
 # Sort features based on importance
-sorted_indices = np.argsort(important_features)[::-1]
+sorted_indices = np.argsort(np.abs(best_loadings))[::-1]
 
 # Get the feature names based on the importance order
-feature_names = features_pca.columns[sorted_indices]
+feature_names = best_feature_names[sorted_indices]
 print(feature_names)
 
+# Print loadings for the best component
+print(
+    f"Best Principal Component Loadings (Component {best_component_index + 1}):")
+for feature, loading in zip(feature_names, best_loadings[sorted_indices]):
+    print(f"{feature}: {loading}")
+
 # Plot the most important features
-plt.bar(feature_names, important_features[sorted_indices], color='blue')
+plt.bar(feature_names, np.abs(
+    best_loadings[sorted_indices]), color='blue')
 plt.xlabel('Features')
 plt.ylabel('Absolute Loadings')
-plt.title('Most Important Features (Third Principal Component)')
+plt.title('Most Important Features ')
 # Rotate x-axis labels for better visibility
 plt.xticks(rotation=45, ha='right')
 plt.show()
-
 # Chosen features based on PCA
-feature_selection = ['speechiness', 'mode', 'liveness', 'tempo']
+
+feature_selection = ['energy', 'loudness', 'acousticness', 'danceability']
 
 # Subset data for each playlist
 christmas_songs = training_data[training_data['target'] == 0]
@@ -147,28 +155,50 @@ for i, feature in enumerate(feature_selection):
 plt.tight_layout()
 plt.show()
 
+# Grid search
+X = training_data[feature_selection]
+y = training_data['target']
+cv = KFold(n_splits=10, random_state=0, shuffle=True)
+# Random Forest hyperparameter tuning
+param_grid_rf = {'n_estimators': [50, 100, 200],
+                 'max_depth': [None, 10, 20],
+                 'min_samples_split': [2, 5, 10]}
+grid_search_rf = GridSearchCV(RandomForestClassifier(
+    random_state=0), param_grid_rf, cv=cv)
+grid_search_rf.fit(X, y)
+print("Best Random Forest Parameters:", grid_search_rf.best_params_)
+
+# SVM hyperparameter tuning
+param_grid_svm = {'C': [0.1, 1, 10],
+                  'kernel': ['linear', 'rbf']}
+grid_search_svm = GridSearchCV(SVC(random_state=0), param_grid_svm, cv=cv)
+grid_search_svm.fit(X, y)
+print("Best SVM Parameters:", grid_search_svm.best_params_)
+
 
 # Comparing Random Forest-and SVM classifier
 
 # Split the data into features (X) and target variable (y)
 X = training_data[feature_selection]
 y = training_data['target']
+cv = KFold(n_splits=10, random_state=0, shuffle=True)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42)
 
 # Random Forest Classifier
-rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier = RandomForestClassifier(
+    n_estimators=100, random_state=0, min_samples_split=5, max_depth=10)
 rf_cv_scores = cross_val_score(
-    rf_classifier, X, y, cv=10)  # 10-fold cross-validation
+    rf_classifier, X, y, cv=cv)
 rf_classifier.fit(X_train, y_train)
 rf_predictions = rf_classifier.predict(X_test)
 
 # SVM Classifier
-svm_classifier = SVC(kernel='linear', C=1)
+svm_classifier = SVC(kernel='linear', C=0.1)
 svm_cv_scores = cross_val_score(
-    svm_classifier, X, y, cv=10)  # 10-fold cross-validation
+    svm_classifier, X, y, cv=cv)
 svm_classifier.fit(X_train, y_train)
 svm_predictions = svm_classifier.predict(X_test)
 
