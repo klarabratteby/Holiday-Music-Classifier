@@ -34,7 +34,7 @@ playlist1 = "214JJqfA7v4pWRt3eNu52P"
 playlist2 = "1SbkwOTcO5iIGVNmC8a7GT"
 
 
-def playlist_tracks(playlist_id, limit=100):
+def playlist_tracks(playlist_id, limit=100):  # Maximum limit is 100 for Spotify API
     track_uris = []
     offset = 0
 
@@ -69,19 +69,19 @@ def audio_features(track_URIs):
     return df
 
 
-# Specify the desired count for each playlist
+# Limit 500 songs to the csv-files
 desired_count = 500
 
 # Dataframes
 audio_features1 = pd.DataFrame()
 audio_features2 = pd.DataFrame()
 
-# Retrieve features for the first playlist
+# Get features for the first playlist
 list1 = playlist_tracks(playlist1, limit=desired_count)
 if list1:
     audio_features1 = audio_features(list1)
 
-# Retrieve features for the second playlist
+# Get features for the second playlist
 list2 = playlist_tracks(playlist2, limit=desired_count)
 if list2:
     audio_features2 = audio_features(list2)
@@ -89,8 +89,8 @@ if list2:
 # Save to CSV
 audio_features1.to_csv('christmas_classifier.csv', index=False)
 audio_features2.to_csv('pop_songs.csv', index=False)
+
 # Label the data
-# set label with true or false
 audio_features1["target"] = 1
 audio_features2["target"] = 0
 
@@ -99,7 +99,7 @@ training_data = pd.concat(
 
 # PCA
 
-# Remove non-numeric columns if any
+# Remove non-numeric columns
 features_pca = training_data.drop(
     ['uri', 'type', 'id', 'track_href', 'analysis_url'], axis=1)
 # print(features_pca.dtypes)
@@ -115,7 +115,7 @@ pca_result = pca.fit_transform(features_pca_scaled)
 # Accessing loadings
 loadings = pca.components_
 
-# Identify the best principal component based on variance explained
+# Identify the best principal component based on variance
 best_component_index = np.argmax(pca.explained_variance_ratio_)
 
 # Get the loadings and feature names for the best component

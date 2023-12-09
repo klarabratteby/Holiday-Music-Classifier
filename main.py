@@ -71,7 +71,6 @@ audio_features1.to_csv('christmas.csv')
 audio_features2.to_csv('midsummer.csv')
 
 # Label the data
-# set label with true or false
 audio_features1["target"] = 1
 audio_features2["target"] = 0
 
@@ -80,7 +79,7 @@ training_data = pd.concat(
 
 # PCA
 
-# Remove non-numeric columns if any
+# Remove non-numeric columns
 features_pca = training_data.drop(
     ['uri', 'type', 'id', 'track_href', 'analysis_url'], axis=1)
 # print(features_pca.dtypes)
@@ -96,7 +95,7 @@ pca_result = pca.fit_transform(features_pca_scaled)
 # Accessing loadings
 loadings = pca.components_
 
-# Identify the best principal component based on variance explained
+# Identify the best principal component based on variance
 best_component_index = np.argmax(pca.explained_variance_ratio_)
 
 # Get the loadings and feature names for the best component
@@ -122,7 +121,6 @@ plt.bar(feature_names, np.abs(
 plt.xlabel('Features')
 plt.ylabel('Absolute Loadings')
 plt.title('Most Important Features')
-# Rotate x-axis labels for better visibility
 plt.xticks(rotation=45, ha='right')
 plt.show()
 
