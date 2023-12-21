@@ -123,7 +123,7 @@ plt.xticks(rotation=45, ha='right')
 #plt.savefig('most_imortant_features.png')
 #plt.close()
 
-# Chosen features based on PCA
+# Chosen features based on PCA-analysis
 feature_selection = ['energy', 'loudness', 'acousticness', 'danceability']
 
 # Subset data for each playlist
