@@ -60,10 +60,9 @@ def splitlist(track_URIs, step):  # Split into sublists
     return [track_URIs[i::step] for i in range(step)]
 
 
+# Fetch playlist data and audio features
 list1 = playlist_URIs(playlist1)
 list2 = playlist_URIs(playlist2)
-
-# Dataframes
 audio_features1 = audio_features(list1)
 audio_features2 = audio_features(list2)
 
@@ -97,7 +96,6 @@ loadings = pca.components_
 
 # Identify the best principal component based on variance
 best_component_index = np.argmax(pca.explained_variance_ratio_)
-
 # Get the loadings and feature names for the best component
 best_loadings = loadings[best_component_index]
 best_feature_names = features_pca.columns
@@ -122,7 +120,8 @@ plt.xlabel('Features')
 plt.ylabel('Absolute Loadings')
 plt.title('Most Important Features')
 plt.xticks(rotation=45, ha='right')
-plt.show()
+#plt.savefig('most_imortant_features.png')
+#plt.close()
 
 # Chosen features based on PCA
 feature_selection = ['energy', 'loudness', 'acousticness', 'danceability']
@@ -150,7 +149,8 @@ for i, feature in enumerate(feature_selection):
     axes[row, col].legend(loc='upper right')
 
 plt.tight_layout()
-plt.show()
+#plt.savefig('histograms.png')
+#plt.close()
 
 # Grid search for hyperparameter tuning
 X = training_data[feature_selection]
@@ -192,6 +192,7 @@ rf_cv_scores = cross_val_score(
     rf_classifier, X, y, cv=cv)
 rf_classifier.fit(X_train, y_train)
 rf_predictions = rf_classifier.predict(X_test)
+rf_accuracy = accuracy_score(y_test, rf_predictions)
 
 # SVM Classifier
 svm_classifier = SVC(kernel='linear', C=0.1)
@@ -199,6 +200,7 @@ svm_cv_scores = cross_val_score(
     svm_classifier, X, y, cv=cv)
 svm_classifier.fit(X_train, y_train)
 svm_predictions = svm_classifier.predict(X_test)
+svm_accuracy = accuracy_score(y_test, svm_predictions)
 
 # Plotting the CV scores
 plt.bar(['Random Forest', 'SVM'], [
@@ -207,26 +209,27 @@ plt.xlabel('Classifiers')
 plt.ylabel('Mean CV Score')
 plt.title('Cross-Validated Score Comparison')
 plt.ylim(0, 1)
-plt.show()
+#plt.savefig('cv_scores.png')
+#plt.close()
 
 # Print result
 print("Random Forest Classifier:")
 print("Random Forest Cross-Validation Scores:", rf_cv_scores)
 print("Mean Random Forest CV Score:", np.mean(rf_cv_scores))
-print("Accuracy:", accuracy_score(y_test, rf_predictions))
+print("Accuracy:", rf_accuracy)
 print("Classification Report:\n", classification_report(y_test, rf_predictions))
 print("Confusion Matrix:\n", confusion_matrix(y_test, rf_predictions))
 
 print("\nSVM Classifier:")
 print("\nSVM Cross-Validation Scores:", svm_cv_scores)
 print("Mean SVM CV Score:", np.mean(svm_cv_scores))
-print("Accuracy:", accuracy_score(y_test, svm_predictions))
+print("Accuracy:", svm_accuracy)
 print("Classification Report:\n", classification_report(y_test, svm_predictions))
 print("Confusion Matrix:\n", confusion_matrix(y_test, svm_predictions))
 
 
 # Function to plot confusion matrix heatmap
-def plot_confusion_matrix(y_true, y_pred, title):
+def plot_confusion_matrix(y_true, y_pred, title, filename):
     cm = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -241,14 +244,18 @@ def plot_confusion_matrix(y_true, y_pred, title):
         for j in range(cm.shape[1]):
             plt.text(j + 0.5, i + 0.5, str(cm[i, j]),
                      ha='center', va='center', color='red')
-    plt.show()
+    #plt.savefig(filename)
+    #plt.close()
 
 
 # Plot confusion matrix for Random Forest
-plot_confusion_matrix(y_test, rf_predictions, "Random Forest Classifier")
+plot_confusion_matrix(y_test, rf_predictions,
+                      "Random Forest Classifier", 'random_forest_heatmap.png')
 
 # Plot confusion matrix for SVM
-plot_confusion_matrix(y_test, svm_predictions, "SVM Classifier")
+plot_confusion_matrix(y_test, svm_predictions,
+                      "SVM Classifier", 'svm_heatmap.png')
+
 
 # Evaluate the models
 rf_accuracy = accuracy_score(y_test, rf_predictions)
@@ -263,4 +270,6 @@ plt.xlabel('Classifiers')
 plt.ylabel('Accuracy')
 plt.title('Classifier Comparison')
 plt.ylim(0, 1)  # accuracy percentage
-plt.show()
+
+#plt.savefig('accuracy.png')
+#plt.close()
